@@ -66,6 +66,20 @@ Pick two things before you record: the language of the lecture, and the language
 
 <p align="center"><img src="docs/capture-en.png" alt="Recording screen: course title, lecture and note languages, audio source and the record button" width="760"></p>
 
+## Where it runs
+
+**The server** (stores notes, calls the model) runs anywhere Docker runs: a Linux VPS, a home NAS, or a Windows or Mac machine with Docker. Nothing to install on it besides Docker. Native macOS scripts (launchd services, encrypted iCloud backups) are included for people who want to use a Mac as the server without Docker, but they are not packaged yet.
+
+**Recording** needs only a browser. No app to install.
+
+| Device | Online class audio (share a tab) | Room audio (microphone) | Import a file |
+|---|---|---|---|
+| Windows / Mac / Linux — Chrome or Edge | ✅ | ✅ | ✅ |
+| Mac — Safari, any OS — Firefox | ❌ cannot capture tab audio | ✅ | ✅ |
+| iPad / iPhone / Android | ❌ use screen recording, then import | ✅ | ✅ |
+
+Tested so far in Chrome / Chromium. The other rows follow what each browser officially supports and have not been tried on real devices yet; reports are welcome.
+
 ## Quick start
 
 You need a server or always-on computer with Docker, a domain pointing at it, and an API key from a model provider.

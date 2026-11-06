@@ -66,6 +66,20 @@ Scribelet 做的就是这个。它还默认会出事：酒店网断了、电脑�
 
 <p align="center"><img src="docs/capture.png" alt="录音界面：课程名称、声音来源和开始录音按钮" width="760"></p>
 
+## 能在哪些系统上用
+
+**服务器**（存笔记、调用模型的那台）：装了 Docker 就能跑，Linux 云服务器、家里的 NAS、装了 Docker 的 Windows 或 Mac 都行，除了 Docker 不用装别的。仓库里还附带了 macOS 原生运行脚本（开机自启服务、加密备份到 iCloud），给想直接拿 Mac 当服务器、不用 Docker 的人，但还没打包成一步安装。
+
+**录音**：只要有浏览器，不用装 App。
+
+| 设备 | 网课声音（共享标签页） | 现场声音（麦克风） | 导入文件 |
+|---|---|---|---|
+| Windows / Mac / Linux 上的 Chrome 或 Edge | ✅ | ✅ | ✅ |
+| Mac 上的 Safari、各系统上的 Firefox | ❌ 录不到标签页声音 | ✅ | ✅ |
+| iPad / iPhone / 安卓手机 | ❌ 先用系统录屏，再导入 | ✅ | ✅ |
+
+目前只在 Chrome / Chromium 上实测过。表里其他几行是按各浏览器官方支持的功能整理的，还没在真机上试过，欢迎反馈。
+
 ## 快速开始
 
 需要：一台装了 Docker 的服务器或常开的电脑，一个指向它的域名，一个模型服务的 API Key。
