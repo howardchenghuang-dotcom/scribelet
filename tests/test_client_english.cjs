@@ -35,6 +35,17 @@ for(const file of ['app.py','processing.py'])
   for(const m of fs.readFileSync(path.join(root,file),'utf8').matchAll(/'([^'\n]*[一-鿿][^'\n]*)'/g))
     if(!exempt.some(rule=>rule.test(m[1])))keys.add(m[1]);
 
+// Rule: a Chinese string in app.js must go through t() (or message()/toast(), which call it).
+// Only the dictionary itself and the labels table (translated where they are shown) may hold bare Chinese.
+{
+  const body=source.replace(/const EN=\{[\s\S]*?\n\};/,'').replace(/const labels=\{[^}]*\}/,'').replace(/^\s*\/\/.*$/gm,'');
+  const bare=[...body.matchAll(/(.{0,12})'([^'\n]*[一-鿿][^'\n]*)'/g)]
+    .filter(m=>!/(?:^|[^A-Za-z_.$])(?:t|message|toast)\($/.test(m[1])).map(m=>m[2])
+    .filter(text=>text!=='中文');  // the switch names Chinese in Chinese, on purpose
+  assert.deepEqual(bare,[],'wrap these in t(): '+bare.join(' | '));
+  for(const sink of [/\$\('noteState'\)\.textContent=t\(/,/esc\(t\(labels\[r\.state\]\)\)/,/esc\(t\(r\.error\)\)/])
+    assert.match(source,sink,'status labels and server errors must be translated where they are shown');
+}
 const en=load({saved:'en'}),zh=load({saved:'zh'});
 const missing=[...keys].filter(key=>!exempt.some(rule=>rule.test(key))&&CJK.test(en.run('t')(key)));
 assert.deepEqual(missing,[],'every visible Chinese string needs an English entry');
