@@ -2,7 +2,7 @@
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f6f4"><title>Scribelet · 私人课堂笔记</title><link rel="manifest" href="/manifest.webmanifest"><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
 <body>
 <aside><a class="brand" href="/">▥ <strong>Scribelet</strong></a><p class="muted">你的私人学习空间</p><nav><button id="homeNav" class="selected">课堂记录</button><button id="notesNav">我的笔记</button></nav><div class="aside-bottom"><span class="dot"></span> 仅本人访问<br><small id="connection">正在连接…</small></div></aside>
-<main><header><span>学习工作台 <span class="muted"> / 随行版</span></span><div><button id="revoke" class="quiet" hidden>退出其他设备的 Scribelet 登录</button><button id="logout" class="quiet" hidden>退出登录</button></div></header>
+<main><header><span>学习工作台 <span class="muted"> / 随行版</span></span><div><button id="uiLang" class="quiet" type="button">English</button><button id="revoke" class="quiet" hidden>退出其他设备的 Scribelet 登录</button><button id="logout" class="quiet" hidden>退出登录</button></div></header>
 <div id="notice" role="status" hidden></div>
 <section id="loginPanel" class="login card" hidden><span class="eyebrow">PRIVATE WORKSPACE</span><h1>欢迎回来。</h1><p class="muted">只有你的私人账号可以访问笔记和使用模型额度。</p><form id="loginForm"><label>账号<input id="username" autocomplete="username" required maxlength="200"></label><label>密码<input id="password" type="password" autocomplete="current-password" required maxlength="256"></label><button class="primary">登录私人空间</button></form><button id="localOnly">网络不稳定？先在此设备录音</button><p class="muted">本地录音无需调用模型。上传和生成必须登录。</p></section>
 <div id="workspace" hidden>

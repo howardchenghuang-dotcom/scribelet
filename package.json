@@ -2,7 +2,7 @@
   "name": "scribelet-tests",
   "private": true,
   "scripts": {
-    "test": "node tests/test_client.cjs && node tests/test_client_behavior.cjs && node tests/test_client_languages.cjs && node tests/test_client_queue.cjs busy && node tests/test_client_queue.cjs boot"
+    "test": "node tests/test_client.cjs && node tests/test_client_behavior.cjs && node tests/test_client_languages.cjs && node tests/test_client_english.cjs && node tests/test_client_queue.cjs busy && node tests/test_client_queue.cjs boot"
   },
   "devDependencies": {
     "fake-indexeddb": "6.2.5"

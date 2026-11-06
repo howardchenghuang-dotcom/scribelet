@@ -9,7 +9,7 @@ It records in the browser without losing a minute, then turns the class into bil
 
 [中文说明](README.zh-CN.md) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Roadmap](#roadmap)
 
-<img src="docs/note.png" alt="A Scribelet note: mind map, core concepts and exam questions, each in the lecture's language and the note language" width="860">
+<img src="docs/note-en.png" alt="A Scribelet note from a Spanish lecture: mind map, core concepts and exam questions, in Spanish and English" width="860">
 
 </div>
 
@@ -64,7 +64,7 @@ Pick two things before you record: the language of the lecture, and the language
 - **A real notes library.** Edit, keep the last 20 versions, trash and restore, permanently delete, import your old Markdown notes, export.
 - **Hardened container.** Read-only filesystem, all Linux capabilities dropped, memory and process limits, automatic HTTPS through Caddy.
 
-<p align="center"><img src="docs/capture.png" alt="Recording screen: course title, audio source and the record button" width="760"></p>
+<p align="center"><img src="docs/capture-en.png" alt="Recording screen: course title, lecture and note languages, audio source and the record button" width="760"></p>
 
 ## Quick start
 
@@ -121,7 +121,7 @@ Scribelet has been in use by its author since September 2026. The test suite has
 
 Be aware that:
 
-- **The interface is in Simplified Chinese.** The notes themselves can be in any of the 10 supported languages.
+- **The interface is in English and Simplified Chinese.** It follows your browser, and the switch at the top right changes it. Notes can be in any of the 10 supported languages.
 - **Notes arrive after class, not live.** Live captions are the next big feature (see below).
 - **The browser must stay open** while recording. On iPad, browsers cannot capture another app's audio. Use screen recording, then import the file; the app shows you how.
 - Scripts for running natively on macOS (launchd services, encrypted off-site backups to iCloud with [age](https://github.com/FiloSottile/age)) are included and tested, but not yet packaged as a one-step installer. Docker is the supported install path.
@@ -129,7 +129,7 @@ Be aware that:
 ## Roadmap
 
 - [ ] **Live captions while you listen** — optional and off by default, using a local [WhisperLiveKit](https://github.com/QuentinFuxa/WhisperLiveKit) server or a cloud streaming API. The full-recording note after class stays the source of truth.
-- [ ] English interface
+- [ ] Interface in more languages
 - [ ] One-step macOS installer, including encrypted off-site backup
 
 ## Development

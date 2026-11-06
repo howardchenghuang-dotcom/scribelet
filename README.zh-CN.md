@@ -106,7 +106,7 @@ docker compose up -d --build  # 第一次启动时 Caddy 会自动申请 HTTPS �
 
 需要知道的：
 
-- **界面目前只有简体中文。** 笔记本身可以是支持的 10 种语言中的任意一种。
+- **界面有英文和简体中文两种。** 默认跟随浏览器语言，右上角可以切换。笔记可以是支持的 10 种语言中的任意一种。
 - **笔记是下课后出，不是实时的。** 实时字幕是下一个大功能，见下文。
 - **录音时浏览器要开着。** iPad 上的浏览器录不到别的 App 的声音，要先用系统录屏，再导入文件；页面里有步骤指引。
 - macOS 原生运行的脚本（launchd 服务、用 [age](https://github.com/FiloSottile/age) 加密后存到 iCloud 的异地备份）已经附上并有测试，但还没做成一步安装。目前推荐用 Docker 安装。
@@ -114,7 +114,7 @@ docker compose up -d --build  # 第一次启动时 Caddy 会自动申请 HTTPS �
 ## 路线图
 
 - [ ] **边听边看实时字幕**：可选，默认关闭。接本地的 [WhisperLiveKit](https://github.com/QuentinFuxa/WhisperLiveKit) 或云端流式识别。课后用完整录音生成的笔记仍然是最准的那份。
-- [ ] 英文界面
+- [ ] 更多界面语言
 - [ ] macOS 一步安装，含加密异地备份
 
 ## 开发
