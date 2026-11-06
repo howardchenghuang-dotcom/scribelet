@@ -1,0 +1,38 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file:
+      - path: ./private.env
+        format: raw
+    environment:
+      SCRIBELET_DATA: /data
+    volumes:
+      - scribelet_data:/data
+    expose:
+      - "8000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1536m
+    cpus: 1.5
+    pids_limit: 100
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SCRIBELET_DOMAIN: ${SCRIBELET_DOMAIN:?run python3 setup_private.py first}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  scribelet_data:
+  caddy_data:
+  caddy_config:

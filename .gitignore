@@ -1,0 +1,20 @@
+# secrets and local config
+private.env
+.env
+config/
+# runtime data
+data/
+backups/
+logs/
+records/
+*.sqlite3*
+*.log
+# tooling
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+node_modules/
+.DS_Store
+.claude/

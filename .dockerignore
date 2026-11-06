@@ -1,0 +1,13 @@
+private.env
+.env
+data
+backups
+__pycache__
+tests
+docs
+node_modules
+.pytest_cache
+*.zip
+*.sqlite3*
+*.log
+.git
