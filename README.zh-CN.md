@@ -74,12 +74,14 @@ Scribelet 做的就是这个。它还默认会出事：酒店网断了、电脑�
 
 | 设备 | 网课声音（共享标签页） | 现场声音（麦克风） | 导入文件 |
 |---|---|---|---|
-| Windows / Mac / Linux 上的 Chrome 或 Edge | ✅ | ✅ | ✅ |
+| Windows / Mac / Linux 上的 Chrome | ✅ | ✅ | ✅ |
+| Windows / Mac 上的 Microsoft Edge | ✅ | ✅ | ✅ |
 | Mac 上的 Safari | ❌ 只能共享画面，没有声音 | ✅ | ✅ |
 | 各系统上的 Firefox | ❌ 只能共享画面，没有声音 | ✅ | ✅ |
-| iPad / iPhone / 安卓手机 | ❌ 先用系统录屏，再导入 | ✅ | ✅ |
+| iPhone / iPad 上的 Safari | ❌ 先用系统录屏，再导入 | ✅ | ✅ |
+| 安卓手机上的 Chrome | ❌ 先用系统录屏，再导入 | ✅ | ✅ |
 
-Chrome、Safari（WebKit 内核）、Firefox 都在 Mac 上实测过：各录 65 秒，存到本机、自动上传，服务器收到的文件逐字节一致，也测了共享标签页。Edge 和 Chrome 是同一个内核。手机和 iPad 还没在真机上试过，欢迎反馈。
+Chrome、Safari（WebKit 内核）、Firefox 都在 Mac 上实测过：各录 65 秒，存到本机、自动上传，服务器收到的文件逐字节一致，也测了共享标签页。Edge 和 Chrome 是同一个内核，但没有单独跑过。iPhone 在模拟器里检查了页面、排版、语言选择和自动切到麦克风；在真的 iPhone、iPad、安卓手机上完整录一段还没做过，欢迎反馈。
 
 ## 快速开始
 

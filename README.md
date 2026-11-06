@@ -74,12 +74,14 @@ Pick two things before you record: the language of the lecture, and the language
 
 | Device | Online class audio (share a tab) | Room audio (microphone) | Import a file |
 |---|---|---|---|
-| Windows / Mac / Linux — Chrome or Edge | ✅ | ✅ | ✅ |
+| Windows / Mac / Linux — Chrome | ✅ | ✅ | ✅ |
+| Windows / Mac — Microsoft Edge | ✅ | ✅ | ✅ |
 | Mac — Safari | ❌ shares video only, no audio | ✅ | ✅ |
 | Any OS — Firefox | ❌ shares video only, no audio | ✅ | ✅ |
-| iPad / iPhone / Android | ❌ use screen recording, then import | ✅ | ✅ |
+| iPhone / iPad — Safari | ❌ use screen recording, then import | ✅ | ✅ |
+| Android — Chrome | ❌ use screen recording, then import | ✅ | ✅ |
 
-Chrome, Safari (WebKit) and Firefox have each been tested on a Mac with a 65-second recording that saved on the device, uploaded by itself and arrived on the server byte for byte, plus a tab-share check. Edge uses the same engine as Chrome. Phones and iPad have not been tried on real devices yet; reports are welcome.
+Chrome, Safari (WebKit) and Firefox were each tested on a Mac with a 65-second recording that saved on the device, uploaded by itself and arrived on the server byte for byte, plus a tab-share check. Edge is built on the same engine as Chrome but has not been run separately. On iPhone (iOS Simulator) the page, layout, language boxes and the automatic switch to the microphone were checked; a full recording on a real iPhone, iPad or Android phone has not been done yet. Reports are welcome.
 
 ## Quick start
 
