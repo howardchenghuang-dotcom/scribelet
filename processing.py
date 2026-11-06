@@ -13,6 +13,7 @@ import wave
 
 import httpx
 from bilingual import build_summary_prompt, build_staged_summary_prompt, build_translation_prompt
+from languages import AUTO, DEFAULT_SOURCE, DEFAULT_TARGET, needs_translation, notice
 
 
 def ffmpeg():
@@ -86,10 +87,14 @@ class Provider:
             raise ValueError({401:'模型服务密钥无效',402:'模型账户余额不足',429:'模型服务暂时限流'}.get(response.status_code,'模型服务暂时不可用')+'；录音已保存，可稍后重试。')
         return response.json()
 
-    def transcribe(self, path, seconds):
+    def transcribe(self, path, seconds, language=AUTO):
         self.store.reserve(audio=seconds)
+        form={'model':asr_model()}
+        # Whisper-style APIs take an ISO 639-1 hint; the default SenseVoice endpoint detects on its own.
+        if language!=AUTO and api_base()!=DEFAULT_API_BASE:
+            form['language']=language
         with path.open('rb') as audio:
-            response=self.client.post('/audio/transcriptions',data={'model':asr_model()},files={'file':('segment.wav',audio,'audio/wav')})
+            response=self.client.post('/audio/transcriptions',data=form,files={'file':('segment.wav',audio,'audio/wav')})
         result=self.check(response).get('text','')
         if not isinstance(result,str):
             raise ValueError('转写返回格式异常，原音频已保留。')
@@ -241,10 +246,10 @@ def summary_batches(spoken,limit=18000):
     if batch:yield batch
 
 
-def translate_segments(provider, spoken, batch_chars=9000):
-    """(Chinese keyed by segment index, reason of the last failed batch or '').
+def translate_segments(provider, spoken, batch_chars=9000, source=DEFAULT_SOURCE, target=DEFAULT_TARGET):
+    """(translations keyed by segment index, reason of the last failed batch or '').
 
-    A failed batch leaves those segments English-only; the caller must say so in the note."""
+    A failed batch leaves those segments untranslated; the caller must say so in the note."""
     numbered=[(idx,re.sub(r'^\[\d\d:\d\d\]\s*','',text)) for idx,text in spoken]
     translations={}
     failure=''
@@ -252,7 +257,7 @@ def translate_segments(provider, spoken, batch_chars=9000):
     def flush():
         nonlocal failure
         if not batch: return
-        prompt=build_translation_prompt('\n'.join('[%d] %s'%(i,t) for i,t in batch))
+        prompt=build_translation_prompt('\n'.join('[%d] %s'%(i,t) for i,t in batch),source,target)
         try:
             answer=provider.summarize(prompt)
         except ValueError as exc:
@@ -282,7 +287,7 @@ def speech_coverage(segments):
     return {'empty_ratio':(sum(ordered)/len(ordered)) if ordered else 0.0,'longest_gap':longest}
 
 
-def compose_note(provider, title, done):
+def compose_note(provider, title, done, source=DEFAULT_SOURCE, target=DEFAULT_TARGET):
     """Summary + bilingual transcript from finished ASR segments {idx: text}."""
     # The marker is a processing state, not something the lecturer said:
     # keep it in the archived transcript, keep it out of the model's input.
@@ -296,30 +301,36 @@ def compose_note(provider, title, done):
     if len(model_input)>18000:
         batches=[]
         for material in summary_batches(spoken):
-            batches.append(provider.summarize(build_summary_prompt(material,'classic')))
-        prompt=build_staged_summary_prompt('\n\n'.join(batches),'classic')
+            batches.append(provider.summarize(build_summary_prompt(material,'classic',source,target)))
+        prompt=build_staged_summary_prompt('\n\n'.join(batches),'classic',source,target)
     else:
-        prompt=build_summary_prompt(model_input,'classic')
+        prompt=build_summary_prompt(model_input,'classic',source,target)
     result=provider.summarize(prompt)
     caution=''
     if quality['empty_ratio']>0.2 or quality['longest_gap']>=3:
-        caution=('> ⚠ 录音质量可能有问题：%d%% 的分段未识别到语音，最长连续 %d 段；分段长度不同，此比例不是静音时长比例。'
-                 '笔记只基于识别到的部分，请对照原音频。\n\n'
-                 % (round(quality['empty_ratio']*100),quality['longest_gap']))
-    # Bilingual transcript: each English segment followed by its Chinese.
+        caution=notice(target,'quality').format(round(quality['empty_ratio']*100),quality['longest_gap'])
+    # Paired transcript: each original segment followed by its translation.
     pairs=[(k,done[k]) for k in sorted(done) if NO_SPEECH not in done[k]]
-    chinese,failure=translate_segments(provider,pairs)
-    missing=sum(1 for k,_ in pairs if k not in chinese)
+    if needs_translation(source,target):
+        chinese,failure=translate_segments(provider,pairs,source=source,target=target)
+        missing=sum(1 for k,_ in pairs if k not in chinese)
+    else:
+        chinese,failure,missing={},'',0
     if missing:
-        caution+=('> ⚠ 原始转写有 %d / %d 段没有生成中文对照%s；原始转写已保留，可点“重新生成笔记”补全。\n\n'
-                  % (missing,len(pairs),'（'+failure.removesuffix('；录音已保存，可稍后重试。').rstrip('。')+'）' if failure else ''))
+        caution+=notice(target,'missing').format(missing,len(pairs),
+            (('（%s）' if target=='zh' else ' (%s)')%failure.removesuffix('；录音已保存，可稍后重试。').rstrip('。')) if failure else '')
     lines=[]
     for k in sorted(done):
         lines.append(done[k])
         if k in chinese:
             lines.append(chinese[k])
-    heading='## Transcript 原始转写（中英对照）' if chinese else '## Transcript 原始转写'
+    heading=notice(target,'heading_pair') if chinese else notice(target,'heading')
     return '# '+title+'\n\n'+caution+result+'\n\n'+heading+'\n\n'+'\n\n'.join(lines)
+
+
+def record_languages(record):
+    """Older records predate language choice: they were English lectures with Chinese notes."""
+    return (record.get('source_lang') or DEFAULT_SOURCE, record.get('target_lang') or DEFAULT_TARGET)
 
 
 def save_note(store,rid,note):
@@ -342,7 +353,7 @@ def process_record(store, rid, provider_factory=Provider, converter=convert):
         try:
             with store.db() as db:
                 done={r['idx']:r['text'] for r in db.execute('SELECT idx,text FROM segments WHERE record=?',(rid,))}
-            note=compose_note(CheckpointProvider(provider,store,rid),record['title'],done)
+            note=compose_note(CheckpointProvider(provider,store,rid),record['title'],done,*record_languages(record))
             save_note(store,rid,note)
         finally:
             provider.close()
@@ -398,13 +409,13 @@ def process_record(store, rid, provider_factory=Provider, converter=convert):
                         segment.writeframes(data)
                     start=int(begin)
                     seconds=len(data)/(rate*audio.getsampwidth()*audio.getnchannels())
-                    text=provider.transcribe(path,seconds)
+                    text=provider.transcribe(path,seconds,record_languages(record)[0])
                     value=f'[{start//60:02d}:{start%60:02d}] '+(text or NO_SPEECH)
                     done[idx]=value
                     with store.db() as db:
                         db.execute('INSERT OR REPLACE INTO segments VALUES(?,?,?)',(rid,idx,value))
                         db.execute('UPDATE records SET progress=?,updated=? WHERE id=?',(int((idx+1)/count*80),time.time(),rid))
-            note=compose_note(CheckpointProvider(provider,store,rid),record['title'],done)
+            note=compose_note(CheckpointProvider(provider,store,rid),record['title'],done,*record_languages(record))
             save_note(store,rid,note)
         finally:
             provider.close()

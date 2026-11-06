@@ -70,7 +70,7 @@ def test_incomplete_output_still_settles_usage(store):
 class Fake:
  def __init__(self,store):self.store=store
  def close(self):pass
- def transcribe(self,path,seconds):
+ def transcribe(self,path,seconds,language=None):
   with wave.open(str(path)) as a:values=a.readframes(a.getnframes())
   # source encodes seconds as sample values; gaps/overlaps visible in text
   import struct

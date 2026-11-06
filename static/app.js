@@ -17,6 +17,18 @@ function restoreSource(){
   }
   box.onchange=()=>{try{localStorage.setItem('scribelet-source',box.value);}catch{}};
 }
+// Lecture and note languages: chosen per recording, remembered per device as the default.
+// Recordings saved before this existed upload without languages and get the server
+// default (English lecture, Chinese notes).
+function restoreLanguages(){
+  let saved=null;try{saved=JSON.parse(localStorage.getItem('scribelet-languages')||'null');}catch{}
+  for(const [id,key] of [['sourceLang','source'],['targetLang','target']]){
+    const box=$(id);if(!box)continue;
+    if(saved&&typeof saved[key]==='string'&&[...(box.options||[])].some(o=>o.value===saved[key]))box.value=saved[key];
+    box.onchange=()=>{try{localStorage.setItem('scribelet-languages',JSON.stringify(chosenLanguages()));}catch{}};
+  }
+}
+function chosenLanguages(){return {source:$('sourceLang')?.value||'en',target:$('targetLang')?.value||'zh'};}
 // Below this byte-domain RMS (0..128 scale) for this long, the take is probably not
 // usable: a lecturer across the room, or a tab shared without its audio.
 const QUIET_RMS=1.5,QUIET_SECONDS=15;
@@ -82,7 +94,7 @@ async function localList(){
   $('localList').innerHTML=local.map(r=>`<div class="row"><div><strong>${esc(r.title)}</strong><small>${(r.size/1024/1024).toFixed(1)} MB · ${r.id===recording?'录音中':r.complete?'已保存到设备':'录音可能中断，已保留可恢复片段'}${r.uploaded?' · 已上传云端':''}</small></div><div class="actions"><button data-local-download="${r.id}" ${r.id===recording?'disabled':''}>下载备份</button><button data-upload="${r.id}" ${r.id===recording||uploading?'disabled':''}>${r.uploaded?'查看云端记录':'上传并生成'}</button></div></div>`).join('')||'<div class="empty">还没有本地录音。开始录音，或导入已有文件。</div>';
 }
 async function refreshSession(){const me=await api('/me');csrf=me.csrf;authenticated=true;$('loginPanel').hidden=true;$('workspace').hidden=false;$('logout').hidden=false;$('revoke').hidden=false;$('connection').textContent='已连接私人空间';$('accountStatus').textContent=me.key_ready?'硅基流动 · '+me.model+' · 模型密钥仅保存在服务器':'服务器尚未配置模型密钥，录音可以保存，生成将在配置后可用。';if(me.limits)$('accountStatus').textContent+=` 每日上限：${me.limits.audio_seconds/3600} 小时转写、${me.limits.jobs} 次生成尝试；超限暂停。`;if(me.backup_warning){$('accountStatus').textContent+=' ⚠ '+me.backup_warning;$('accountStatus').classList?.add('warning');}return me;}
-restoreSource();
+restoreSource();restoreLanguages();
 $('loginForm').onsubmit=async event=>{event.preventDefault();const button=event.submitter;button.disabled=true;try{await api('/login',{username:$('username').value,password:$('password').value});$('password').value='';await refreshSession();await loadLibrary();await resumeUploads();message('');}catch(e){message(e.message);}finally{button.disabled=false;}};
 $('localOnly').onclick=()=>{$('loginPanel').hidden=true;$('workspace').hidden=false;show('captureView');message('本地录音模式。上传和生成时需要登录，云端不可用也可以先下载录音备份。');};
 $('logout').onclick=async()=>{if(recording||uploading)return message('请先结束录音或等待上传结束。');try{await api('/logout',{});authenticated=false;csrf='';records=[];current=null;$('noteBody').textContent='';$('cloudList').textContent='';$('workspace').hidden=true;$('loginPanel').hidden=false;$('logout').hidden=$('revoke').hidden=true;message('已退出。此设备上的录音副本仍保留，请勿在共用设备上使用。');}catch(e){message(e.message);}};
@@ -102,7 +114,7 @@ async function startRecording(){
     const mime=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t=>MediaRecorder.isTypeSupported(t));
     recorder=new MediaRecorder(audioStream,mime?{mimeType:mime}:{});
     const id=uid();recording=id;writing=Promise.resolve();captureError=false;
-    await dbWrite('recordings',{id,title:title(),mime:recorder.mimeType||mime||'audio/webm',created:Date.now(),size:0,count:0,complete:false});
+    const langs=chosenLanguages();await dbWrite('recordings',{id,title:title(),mime:recorder.mimeType||mime||'audio/webm',created:Date.now(),size:0,count:0,complete:false,source_lang:langs.source,target_lang:langs.target});
     recorder.ondataavailable=event=>{if(!event.data.size)return;writing=writing.then(()=>appendChunk(id,event.data)).catch(error=>{captureError=true;message('录音保存出现问题：'+error.message+' 已保存片段可下载，请立即用系统录音接续。');if(recorder?.state==='recording')recorder.stop();});};
     recorder.onerror=()=>{captureError=true;message('录音被浏览器中断，已保存片段仍在。请下载检查后重新录制。');if(recorder?.state==='recording')recorder.stop();};
     recorder.onstop=async()=>{stream?.getTracks().forEach(t=>t.stop());await writing;const local=await dbRead('recordings',id);if(local){local.complete=!captureError;await dbWrite('recordings',local);}recording=null;$('start').hidden=false;$('stop').hidden=true;$('recordState').textContent=captureError?'需要检查录音':'已保存到设备';$('recordState').className='badge';clearInterval(startRecording.clock);await meterContext?.close();meterContext=null;await wakeLock?.release();wakeLock=null;await localList();if(shouldAutoUpload(Date.now()-started,captureError)){if(local){local.autoUpload=true;await dbWrite('recordings',local);}toast('录音已保存，正在自动上传并生成笔记。');await upload(id);}else toast(captureError?'录音可能不完整，请下载已保存片段检查。':'录音已保存在此设备。不足 1 分钟不会自动上传，需要的话点“上传并生成”。');};
@@ -118,7 +130,7 @@ async function startRecording(){
 $('start').onclick=startRecording;$('stop').onclick=()=>{if(recorder?.state==='recording'){recorder.stop();$('stop').disabled=true;writing.finally(()=>$('stop').disabled=false);}};
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&recording)message('页面进入后台，系统可能暂停录音。请返回此页面并检查声音。');});
 window.addEventListener('beforeunload',event=>{if(recording||uploading){event.preventDefault();event.returnValue='';}});
-$('file').onchange=async()=>{const file=$('file').files[0];if(!file)return;try{if(!file.size||file.size>MAX)throw new Error('文件必须大于 0 字节且小于 256 MB。');const id=uid();await dbWrite('recordings',{id,title:$('title').value.trim()||file.name,mime:file.type||'application/octet-stream',created:Date.now(),size:0,count:0,complete:false});for(let at=0;at<file.size;at+=PART)await appendChunk(id,file.slice(at,at+PART));const local=await dbRead('recordings',id);local.complete=true;local.autoUpload=true;await dbWrite('recordings',local);await localList();toast('文件已保存，正在自动上传并生成笔记。');await upload(id);}catch(e){message('导入失败：'+e.message);await localList();}finally{$('file').value='';}};
+$('file').onchange=async()=>{const file=$('file').files[0];if(!file)return;try{if(!file.size||file.size>MAX)throw new Error('文件必须大于 0 字节且小于 256 MB。');const id=uid(),langs=chosenLanguages();await dbWrite('recordings',{id,title:$('title').value.trim()||file.name,mime:file.type||'application/octet-stream',created:Date.now(),size:0,count:0,complete:false,source_lang:langs.source,target_lang:langs.target});for(let at=0;at<file.size;at+=PART)await appendChunk(id,file.slice(at,at+PART));const local=await dbRead('recordings',id);local.complete=true;local.autoUpload=true;await dbWrite('recordings',local);await localList();toast('文件已保存，正在自动上传并生成笔记。');await upload(id);}catch(e){message('导入失败：'+e.message);await localList();}finally{$('file').value='';}};
 const uploadQueue=new Set();
 async function resumeUploads(){for(const r of await dbRead('recordings'))if(r.autoUpload&&!r.uploaded)await upload(r.id);}
 async function upload(id){
@@ -131,7 +143,7 @@ async function upload(id){
     if(!local.size)throw new Error('没有已保存的音频。');
     local.autoUpload=true;await dbWrite('recordings',local);
     const blob=await recordingBlob(local);
-    await api('/records',{id,title:local.title,size:blob.size,mime:local.mime});
+    const body={id,title:local.title,size:blob.size,mime:local.mime};if(local.source_lang)body.source_lang=local.source_lang;if(local.target_lang)body.target_lang=local.target_lang;await api('/records',body);
     const server=await api('/records/'+id);
     if(server.state==='uploading')for(let i=0;i<Math.ceil(blob.size/PART);i++){
       if(server.parts.includes(i))continue;

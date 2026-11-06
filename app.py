@@ -17,6 +17,8 @@ from urllib.parse import urlsplit
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 
+import languages
+
 HERE = Path(__file__).resolve().parent
 PART_SIZE = 2 * 1024 * 1024
 MAX_FILE = 256 * 1024 * 1024
@@ -106,8 +108,14 @@ class Store:
             CREATE TABLE IF NOT EXISTS revisions (record TEXT, version INTEGER, title TEXT, note TEXT, created REAL,
                 PRIMARY KEY(record,version));
             ''')
-            if 'rebuild_note' not in {r[1] for r in db.execute('PRAGMA table_info(records)')}:
+            columns={r[1] for r in db.execute('PRAGMA table_info(records)')}
+            if 'rebuild_note' not in columns:
                 db.execute('ALTER TABLE records ADD COLUMN rebuild_note INTEGER DEFAULT 0')
+            # Records made before language choice were English lectures with Chinese notes.
+            if 'source_lang' not in columns:
+                db.execute("ALTER TABLE records ADD COLUMN source_lang TEXT DEFAULT 'en'")
+            if 'target_lang' not in columns:
+                db.execute("ALTER TABLE records ADD COLUMN target_lang TEXT DEFAULT 'zh'")
 
     @contextmanager
     def db(self):
@@ -328,6 +336,9 @@ def create_app(root=None, origin=None, owner=None, password=None, start_worker=T
     async def create_record(request: Request):
         body = await body_json(request)
         rid, title, size, mime = body.get('id'),body.get('title'),body.get('size'),body.get('mime','')
+        source, target = body.get('source_lang', languages.DEFAULT_SOURCE), body.get('target_lang', languages.DEFAULT_TARGET)
+        if not languages.valid_source(source) or not languages.valid_target(target):
+            raise HTTPException(400,'不支持的语言')
         if not isinstance(rid,str) or not re.fullmatch(r'[a-f0-9]{32}',rid) or not valid_title(title) or type(size) is not int or not 0<size<=MAX_FILE or not isinstance(mime,str) or len(mime)>120:
             raise HTTPException(400,'文件信息无效；单份最大 256 MB')
         with store.db() as db:
@@ -341,7 +352,7 @@ def create_app(root=None, origin=None, owner=None, password=None, start_worker=T
             if size_sum+size>int(os.getenv('SCRIBELET_STORAGE_BYTES',str(2*1024**3))) or count>=500:
                 raise HTTPException(413,'存储空间已达上限，请备份后联系管理员清理')
             now = time.time()
-            db.execute('INSERT INTO records(id,title,size,mime,state,created,updated) VALUES(?,?,?,?,?,?,?)',(rid,title.strip(),size,mime,'uploading',now,now))
+            db.execute('INSERT INTO records(id,title,size,mime,state,created,updated,source_lang,target_lang) VALUES(?,?,?,?,?,?,?,?,?)',(rid,title.strip(),size,mime,'uploading',now,now,source,target))
         return {'id':rid}
 
     @app.get('/api/records/{rid}')

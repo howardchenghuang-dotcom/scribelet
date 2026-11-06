@@ -4,7 +4,7 @@ WORKDIR /app
 COPY requirements.lock .
 RUN pip install --no-cache-dir -r requirements.lock
 RUN useradd --create-home --uid 10001 scribelet && mkdir /data && chown scribelet:scribelet /data
-COPY app.py processing.py bilingual.py backup.py ./
+COPY app.py processing.py bilingual.py languages.py backup.py ./
 COPY static ./static
 USER scribelet
 ENV SCRIBELET_DATA=/data PYTHONUNBUFFERED=1

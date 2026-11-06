@@ -164,7 +164,7 @@ class PrivateTests(unittest.TestCase):
         class Fake:
             def __init__(self,store):pass
             def close(self):pass
-            def transcribe(self,path,seconds):calls.append('asr');return 'Ethics concerns values.'
+            def transcribe(self,path,seconds,language=None):calls.append('asr');return 'Ethics concerns values.'
             def summarize(self,prompt):
                 if '<segments>' in prompt:          # 转写翻译
                     calls.append('translate')
@@ -621,7 +621,7 @@ class PrivateTests(unittest.TestCase):
         class Fake:
             def __init__(self,store):pass
             def close(self):pass
-            def transcribe(self,path,seconds):return 'Ethics concerns values.'
+            def transcribe(self,path,seconds,language=None):return 'Ethics concerns values.'
             def summarize(self,prompt):return '## Values 价值观\nEthics concerns values. — 伦理涉及价值观。'
         with patch.dict(os.environ,{'SCRIBELET_FFMPEG':ffmpeg}):
             process_record(self.store,RID,provider_factory=Fake)
@@ -826,7 +826,7 @@ class PrivateTests(unittest.TestCase):
         class Fake:
             def __init__(self,store):pass
             def close(self):pass
-            def transcribe(self,path,seconds):
+            def transcribe(self,path,seconds,language=None):
                 Fake.n=getattr(Fake,'n',0)+1
                 return 'Only the second chunk has words.' if Fake.n==2 else ''
             def summarize(self,prompt):prompts.append(prompt);return '## 摘要'

@@ -4,12 +4,12 @@
 
 **Record the lecture. Get bilingual study notes. Keep everything on your own server.**
 
-A self-hosted lecture recorder for people who study in English and think in Chinese.<br>
-It records in the browser without losing a minute, then turns the class into English–Chinese notes you can actually revise from.
+A self-hosted lecture recorder for anyone studying in a language that isn't their first.<br>
+It records in the browser without losing a minute, then turns the class into bilingual notes you can actually revise from: Spanish → English, English → Chinese, Japanese → Korean, any pair of 10 major languages.
 
 [中文说明](README.zh-CN.md) · [Quick start](#quick-start) · [How it works](#how-it-works) · [Roadmap](#roadmap)
 
-<img src="docs/note.png" alt="A Scribelet note: mind map, core concepts and exam questions, each in English and Chinese" width="860">
+<img src="docs/note.png" alt="A Scribelet note: mind map, core concepts and exam questions, each in the lecture's language and the note language" width="860">
 
 </div>
 
@@ -17,9 +17,9 @@ It records in the browser without losing a minute, then turns the class into Eng
 
 ## Why this exists
 
-You are three weeks into a course taught in English. The lecture moves fast, the slides skip the reasoning, and by the time you have looked up one term the professor is two ideas ahead.
+You are three weeks into a course taught in a language you're still learning. The lecture moves fast, the slides skip the reasoning, and by the time you have looked up one term the professor is two ideas ahead.
 
-Recording apps give you a wall of English text. Translation apps give you a wall of Chinese text. Neither gives you what you need the night before the exam: **the structure of the lecture, the key ideas in both languages, and a way to jump back to the exact minute you didn't understand.**
+Recording apps give you a wall of text in the lecture's language. Translation apps give you a wall of text in yours. Neither gives you what you need the night before the exam: **the structure of the lecture, the key ideas in both languages, and a way to jump back to the exact minute you didn't understand.**
 
 Scribelet does that. It also assumes the things that go wrong will go wrong: the hotel Wi-Fi drops, the laptop sleeps, the API runs out of quota halfway through a three-hour seminar. None of those should cost you a lecture.
 
@@ -27,15 +27,23 @@ Scribelet does that. It also assumes the things that go wrong will go wrong: the
 
 Every recording becomes one note with:
 
-- **A mind map of the whole lecture** — every branch in English and Chinese
+- **A mind map of the whole lecture** — every branch in both languages
 - **Core concepts** — definitions, examples and explanations, each paired line by line
 - **Framework / process** — steps, when they apply, and the usual mistakes
 - **Exam watch** — likely questions with short answers in both languages
 - **Timeline** — timestamps to find the part you want to hear again
 - **To verify** — anything the model was unsure of, flagged instead of made up
-- **The full transcript**, segment by segment, with a Chinese translation under each line
+- **The full transcript**, segment by segment, with its translation under each line
 
 If part of the recording had no usable speech, the note says so at the top instead of quietly leaving gaps.
+
+## Any lecture language, any note language
+
+Pick two things before you record: the language of the lecture, and the language you want your notes in. Scribelet remembers your choice on each device.
+
+**English · 简体中文 · Español · Français · Deutsch · 日本語 · 한국어 · Português · Русский · العربية** — any pair, in either direction. Not sure what the lecture will be in? Choose *auto-detect*. Same language on both sides? You get clean one-language notes, with no translation step and no extra cost.
+
+> Speech recognition quality depends on the model you connect. The default (SenseVoice) covers Chinese, English, Japanese, Korean and Cantonese; for Spanish, French, German, Portuguese, Russian or Arabic lectures, connect a Whisper-class model.
 
 ## Built so you don't lose a class
 
@@ -51,7 +59,7 @@ If part of the recording had no usable speech, the note says so at the top inste
 ## Your server, your data
 
 - **Single owner.** No sign-up page and no shared accounts. Password stored as an scrypt hash, with a global login rate limit, CSRF protection and strict host checks.
-- **Any OpenAI-compatible provider.** Point it at SiliconFlow (default), OpenAI, a local gateway, or anything else that serves `/audio/transcriptions` and `/chat/completions`.
+- **Bring your own API.** Not tied to any vendor: point it at OpenAI, SiliconFlow, Groq, a local Whisper + LLM gateway, or anything else that serves the OpenAI-style `/audio/transcriptions` and `/chat/completions`. Change provider any time by editing four lines.
 - **Cost guardrails.** Daily limits on jobs, audio minutes and tokens are reserved *before* each call, then refunded down to what the provider actually billed.
 - **A real notes library.** Edit, keep the last 20 versions, trash and restore, permanently delete, import your old Markdown notes, export.
 - **Hardened container.** Read-only filesystem, all Linux capabilities dropped, memory and process limits, automatic HTTPS through Caddy.
@@ -97,7 +105,7 @@ Open `https://your-domain`, sign in, and start recording.
                                                     │
                                               speech-to-text, per segment
                                                     │
-                                              translate each segment → Chinese
+                                              translate each segment → note language
                                                     │
                                               structured bilingual note
                                               (checkpointed at every step)
@@ -113,7 +121,7 @@ Scribelet has been in use by its author since September 2026. The test suite has
 
 Be aware that:
 
-- **The interface is in Simplified Chinese**, and notes are English → Chinese. Other language pairs are on the roadmap.
+- **The interface is in Simplified Chinese.** The notes themselves can be in any of the 10 supported languages.
 - **Notes arrive after class, not live.** Live captions are the next big feature (see below).
 - **The browser must stay open** while recording. On iPad, browsers cannot capture another app's audio. Use screen recording, then import the file; the app shows you how.
 - Scripts for running natively on macOS (launchd services, encrypted off-site backups to iCloud with [age](https://github.com/FiloSottile/age)) are included and tested, but not yet packaged as a one-step installer. Docker is the supported install path.
@@ -122,7 +130,6 @@ Be aware that:
 
 - [ ] **Live captions while you listen** — optional and off by default, using a local [WhisperLiveKit](https://github.com/QuentinFuxa/WhisperLiveKit) server or a cloud streaming API. The full-recording note after class stays the source of truth.
 - [ ] English interface
-- [ ] Target languages other than Chinese
 - [ ] One-step macOS installer, including encrypted off-site backup
 
 ## Development

@@ -42,7 +42,11 @@ function makeContext({saved=null,sourceValue='screen',display=true,storageThrows
 
 (async()=>{
   const mic=makeContext({sourceValue:'mic'});
+  mic.node('sourceLang').value='es';mic.node('targetLang').value='en';
   await vm.runInContext('startRecording()',mic.context);
+  const saved=(await vm.runInContext("dbRead('recordings')",mic.context)).at(-1);
+  assert.equal(saved.source_lang,'es','a new recording keeps the lecture language chosen when it started');
+  assert.equal(saved.target_lang,'en');
   assert.equal(mic.calls.length,1);
   assert.equal(mic.calls[0][0],'user');
   assert.deepEqual(JSON.parse(JSON.stringify(mic.calls[0][1])),{audio:{
