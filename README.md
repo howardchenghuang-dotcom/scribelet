@@ -75,10 +75,11 @@ Pick two things before you record: the language of the lecture, and the language
 | Device | Online class audio (share a tab) | Room audio (microphone) | Import a file |
 |---|---|---|---|
 | Windows / Mac / Linux — Chrome or Edge | ✅ | ✅ | ✅ |
-| Mac — Safari, any OS — Firefox | ❌ cannot capture tab audio | ✅ | ✅ |
+| Mac — Safari | ❌ shares video only, no audio | ✅ | ✅ |
+| Any OS — Firefox | ❌ shares video only, no audio | ✅ | ✅ |
 | iPad / iPhone / Android | ❌ use screen recording, then import | ✅ | ✅ |
 
-Tested so far in Chrome / Chromium. The other rows follow what each browser officially supports and have not been tried on real devices yet; reports are welcome.
+Chrome, Safari (WebKit) and Firefox have each been tested on a Mac with a 65-second recording that saved on the device, uploaded by itself and arrived on the server byte for byte, plus a tab-share check. Edge uses the same engine as Chrome. Phones and iPad have not been tried on real devices yet; reports are welcome.
 
 ## Quick start
 

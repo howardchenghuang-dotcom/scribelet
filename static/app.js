@@ -254,10 +254,14 @@ async function dbWrite(store,value){const db=await database;return new Promise((
 async function appendChunk(id,blob){
   const record=await dbRead('recordings',id);
   if(record.size+blob.size>MAX)throw new Error(t('录音达到 256 MB 上限，请结束并开始下一段。'));
+  // Store raw bytes, not the Blob: Safari (Private Browsing, and some WebKit builds) refuses Blobs in
+  // IndexedDB and every chunk would silently fail. Read the bytes before the transaction opens,
+  // because an await inside it would let the transaction commit early.
+  const bytes=await blob.arrayBuffer(),type=blob.type;
   const db=await database;
-  await new Promise((resolve,reject)=>{const tx=db.transaction(['recordings','chunks'],'readwrite');tx.objectStore('chunks').put({id:id+':'+record.count,blob});record.count++;record.size+=blob.size;tx.objectStore('recordings').put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error(t('本地空间不足')));});
+  await new Promise((resolve,reject)=>{const tx=db.transaction(['recordings','chunks'],'readwrite');tx.objectStore('chunks').put({id:id+':'+record.count,bytes,type});record.count++;record.size+=blob.size;tx.objectStore('recordings').put(record);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error(t('本地保存失败')));tx.onabort=()=>reject(tx.error||new Error(t('本地空间不足')));});
 }
-async function recordingBlob(record){const chunks=[];for(let i=0;i<record.count;i++){const chunk=await dbRead('chunks',record.id+':'+i);if(!chunk)throw new Error(t('本地录音分片缺失，请使用已下载的备份。'));chunks.push(chunk.blob);}return new Blob(chunks,{type:record.mime});}
+async function recordingBlob(record){const chunks=[];for(let i=0;i<record.count;i++){const chunk=await dbRead('chunks',record.id+':'+i);if(!chunk)throw new Error(t('本地录音分片缺失，请使用已下载的备份。'));chunks.push(chunk.bytes?new Blob([chunk.bytes],{type:chunk.type}):chunk.blob);}return new Blob(chunks,{type:record.mime});}
 function uid(){return crypto.randomUUID().replace(/-/g,'');}
 function title(){return $('title').value.trim()||t('课堂记录 {0}',new Date().toLocaleString(LOCALE));}
 function extension(mime){if(mime.includes('mp4'))return 'm4a';if(mime.includes('mpeg'))return 'mp3';if(mime.includes('wav'))return 'wav';return 'webm';}
@@ -277,7 +281,9 @@ async function startRecording(){
   $('start').disabled=true;message('');
   try{
     if(!navigator.mediaDevices||!window.MediaRecorder)throw new Error(t('此浏览器不能录音，请使用系统录音后导入文件。'));
-    if(navigator.storage?.persist)await navigator.storage.persist();
+    // Ask to keep recordings through storage clean-up, but never make the lecture wait for the answer:
+    // Firefox shows a prompt here, and recording must start the moment Start is pressed.
+    navigator.storage?.persist?.().catch(()=>{});
     if($('source').value==='screen'){
       if(!navigator.mediaDevices.getDisplayMedia)throw new Error(t('此设备不支持网页共享声音，请使用系统录屏后导入。'));
       stream=await navigator.mediaDevices.getDisplayMedia({video:true,audio:true});
@@ -288,7 +294,7 @@ async function startRecording(){
     recorder=new MediaRecorder(audioStream,mime?{mimeType:mime}:{});
     const id=uid();recording=id;writing=Promise.resolve();captureError=false;
     const langs=chosenLanguages();await dbWrite('recordings',{id,title:title(),mime:recorder.mimeType||mime||'audio/webm',created:Date.now(),size:0,count:0,complete:false,source_lang:langs.source,target_lang:langs.target});
-    recorder.ondataavailable=event=>{if(!event.data.size)return;writing=writing.then(()=>appendChunk(id,event.data)).catch(error=>{captureError=true;message(t('录音保存出现问题：{0} 已保存片段可下载，请立即用系统录音接续。',t(error.message)));if(recorder?.state==='recording')recorder.stop();});};
+    recorder.ondataavailable=event=>{if(!event.data.size)return;writing=writing.then(()=>appendChunk(id,event.data)).catch(error=>{captureError=true;message(t('录音保存出现问题：{0} 已保存片段可下载，请立即用系统录音接续。',error?.message?t(error.message):t('本地保存失败')));if(recorder?.state==='recording')recorder.stop();});};
     recorder.onerror=()=>{captureError=true;message(t('录音被浏览器中断，已保存片段仍在。请下载检查后重新录制。'));if(recorder?.state==='recording')recorder.stop();};
     recorder.onstop=async()=>{stream?.getTracks().forEach(t=>t.stop());await writing;const local=await dbRead('recordings',id);if(local){local.complete=!captureError;await dbWrite('recordings',local);}recording=null;$('start').hidden=false;$('stop').hidden=true;$('recordState').textContent=captureError?t('需要检查录音'):t('已保存到设备');$('recordState').className='badge';clearInterval(startRecording.clock);await meterContext?.close();meterContext=null;await wakeLock?.release();wakeLock=null;await localList();if(shouldAutoUpload(Date.now()-started,captureError)){if(local){local.autoUpload=true;await dbWrite('recordings',local);}toast('录音已保存，正在自动上传并生成笔记。');await upload(id);}else toast(captureError?t('录音可能不完整，请下载已保存片段检查。'):t('录音已保存在此设备。不足 1 分钟不会自动上传，需要的话点“上传并生成”。'));};
     stream.getAudioTracks()[0].onended=()=>{if(recorder?.state==='recording'){message(t('音频来源已结束，正在保存录音。'));recorder.stop();}};

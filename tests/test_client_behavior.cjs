@@ -4,7 +4,7 @@ const root=path.resolve(process.env.SCRIBELET_APP_ROOT||path.join(__dirname,'..'
 const {indexedDB}=require(path.join(root,'node_modules/fake-indexeddb'));
 const source=fs.readFileSync(path.join(root,'static/app.js'),'utf8');
 
-function makeContext({saved=null,sourceValue='screen',display=true,storageThrows=false,backupWarning=''}={}){
+function makeContext({saved=null,sourceValue='screen',display=true,storageThrows=false,backupWarning='',persistHangs=false}={}){
   const nodes=new Map(),calls=[];
   function node(id){
     if(!nodes.has(id))nodes.set(id,{value:id==='source'?sourceValue:'',hidden:id==='ipadSteps',textContent:'',innerHTML:'',
@@ -33,7 +33,7 @@ function makeContext({saved=null,sourceValue='screen',display=true,storageThrows
     AbortController,URL,Date,localStorage,MediaRecorder:Recorder,MediaStream:Stream,
     document:{getElementById:node,addEventListener(){},hidden:false,createElement:()=>({click(){}})},
     window:{addEventListener(){},MediaRecorder:Recorder},
-    navigator:{onLine:true,mediaDevices,storage:{persist:async()=>true}},confirm:()=>true,
+    navigator:{onLine:true,mediaDevices,storage:{persist:persistHangs?()=>new Promise(()=>{}):async()=>true}},confirm:()=>true,
     setInterval:()=>0,clearInterval(){},setTimeout:(fn)=>{const t=setTimeout(fn,0);t.unref();return t;},clearTimeout,
     fetch:async url=>url==='/api/me'?response({csrf:'csrf',owner:'owner',key_ready:false,backup_warning:backupWarning}):response([])});
   vm.runInContext(source,context);
@@ -51,6 +51,11 @@ function makeContext({saved=null,sourceValue='screen',display=true,storageThrows
   assert.equal(mic.calls[0][0],'user');
   assert.deepEqual(JSON.parse(JSON.stringify(mic.calls[0][1])),{audio:{
     echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+
+  // Firefox asks the user before granting persistent storage; an unanswered prompt must not hold up the lecture.
+  const prompting=makeContext({sourceValue:'mic',persistHangs:true});
+  await Promise.race([vm.runInContext('startRecording()',prompting.context),new Promise(r=>setTimeout(r,300))]);
+  assert.equal(prompting.calls.length,1,'recording starts without waiting for the storage prompt');
 
   const remembered=makeContext({saved:'screen',sourceValue:'mic'});
   assert.equal(remembered.node('source').value,'screen');
